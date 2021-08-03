@@ -29,6 +29,34 @@ export class Vertex {
         this.y += y;
         this.z += z;
     }
+
+    /**
+     * Rotates the vertex around the arbitrary axis (a unit vector).
+     * The given vector might not be normalized on input.
+     * @param vx X vector component
+     * @param vy Y vector component
+     * @param vz Z vector component
+     * @param angle Rotation angle in radians
+     */
+    public rotate(vx: number, vy: number, vz: number, angle: number): void {
+        let vectorLength = Math.sqrt(vx * vx + vy * vy + vz * vz);
+        if(vectorLength != 1) {
+            //Normalize
+            vx = vx / vectorLength;
+            vy = vy / vectorLength;
+            vz = vz / vectorLength;
+        }
+        let cosA = Math.cos(angle);
+        let sinA = Math.sin(angle);
+        let rotationMatrix = [
+            [cosA + vx * vx * (1 - cosA), vx * vy * (1 - cosA) - vz * sinA, vx * vz * (1 - cosA) + vy * sinA],
+            [vy * vx * (1 - cosA) + vz * sinA, cosA + vy * vy * (1 - cosA), vy * vz * (1 - cosA) - vx * sinA],
+            [vz * vx * (1 - cosA) - vy * sinA, vz * vy * (1 - cosA) + vx * sinA, cosA + vz * vz * (1 - cosA)]
+        ];
+        this.x = rotationMatrix[0][0] * this.x + rotationMatrix[0][1] * this.y + rotationMatrix[0][2] * this.z;
+        this.y = rotationMatrix[1][0] * this.x + rotationMatrix[1][1] * this.y + rotationMatrix[1][2] * this.z;
+        this.z = rotationMatrix[2][0] * this.x + rotationMatrix[2][1] * this.y + rotationMatrix[2][2] * this.z;
+    }
     
 }
 
@@ -75,6 +103,11 @@ export class Edge {
         this.vertex2.move(x, y, z);
     }
 
+    public rotate(vx: number, vy: number, vz: number, angle: number): void {
+        this.vertex1.rotate(vx, vy, vz, angle);
+        this.vertex2.rotate(vx, vy, vz, angle);
+    }
+
 }
 
 export class Face {
@@ -99,12 +132,18 @@ export class Face {
             let projection = camera.getVertexProjection(this.vertices[i]);
             context.lineTo(projection.x, projection.y);
         }
-        context.fill();
+        context.closePath();
+        context.stroke();
     }
 
     public move(x: number, y: number, z: number): void {
         this.vertices.forEach(vertex => vertex.move(x, y, z));
     }
+
+    public rotate(vx: number, vy: number, vz: number, angle: number): void {
+        this.vertices.forEach(vertex => vertex.rotate(vx, vy, vz, angle));
+    }
+
 }
 
 export class Shape {
@@ -123,6 +162,11 @@ export class Shape {
     public move(x: number, y: number, z: number): void {
         this.faces.forEach(face => face.move(x, y, z));
     }
+
+    public rotate(vx: number, vy: number, vz: number, angle: number): void {
+        this.faces.forEach(face => face.rotate(vx, vy, vz, angle));
+    }
+
 }
 
 export class Camera {
