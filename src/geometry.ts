@@ -16,6 +16,19 @@ export class Vertex {
     public clone(): Vertex {
         return new Vertex(this.x, this.y, this.z);
     }
+
+    public draw(camera: Camera, context: CanvasRenderingContext2D) {
+        let projection = camera.getVertexProjection(this);
+        context.beginPath();
+        context.arc(projection.x, projection.y, 4, 0, 2 * Math.PI, false);
+        context.fill();
+    }
+
+    public move(x: number, y: number, z: number): void {
+        this.x += x;
+        this.y += y;
+        this.z += z;
+    }
     
 }
 
@@ -47,6 +60,21 @@ export class Edge {
     public clone(): Edge {
         return new Edge(this.vertex1.clone(), this.vertex2.clone());
     }
+
+    public draw(camera: Camera, context: CanvasRenderingContext2D) {
+        let projection1 = camera.getVertexProjection(this.vertex1);
+        let projection2 = camera.getVertexProjection(this.vertex2);
+        context.beginPath();
+        context.moveTo(projection1.x, projection1.y);
+        context.lineTo(projection2.x, projection2.y);
+        context.stroke();
+    }
+
+    public move(x: number, y: number, z: number): void {
+        this.vertex1.move(x, y, z);
+        this.vertex2.move(x, y, z);
+    }
+
 }
 
 export class Face {
@@ -56,13 +84,66 @@ export class Face {
         if(vertices.length < 3) throw new Error("Cannot create a face out of less than 3 vertices");
         this.vertices = vertices;
     }
+
+    public clone(): Face {
+        let verticesCopy: Vertex[] = [];
+        this.vertices.forEach(vertex => verticesCopy.push(vertex.clone()));
+        return new Face(...verticesCopy);
+    }
+
+    public draw(camera: Camera, context: CanvasRenderingContext2D) {
+        context.beginPath();
+        let firstProjection = camera.getVertexProjection(this.vertices[0]);
+        context.moveTo(firstProjection.x, firstProjection.y);
+        for(let i = 1; i < this.vertices.length; i++) {
+            let projection = camera.getVertexProjection(this.vertices[i]);
+            context.lineTo(projection.x, projection.y);
+        }
+        context.fill();
+    }
+
+    public move(x: number, y: number, z: number): void {
+        this.vertices.forEach(vertex => vertex.move(x, y, z));
+    }
+}
+
+export class Shape {
+    public readonly faces: Face[];
+
+    constructor(...faces: Face[]) {
+        this.faces = faces;
+    }
+
+    public draw(camera: Camera, context: CanvasRenderingContext2D) {
+        this.faces.forEach(face => {
+            face.draw(camera, context);
+        });
+    }
+
+    public move(x: number, y: number, z: number): void {
+        this.faces.forEach(face => face.move(x, y, z));
+    }
 }
 
 export class Camera {
     public readonly projectionWidth: number = 640;
     public readonly projectionHeight: number = 640;
-    public readonly fov: number = Math.PI / 2; //Field of view in radians
-    public readonly nearClipPlane: number = 1 / Math.tan(this.fov / 2);
+    private _fov: number //Field of view in radians
+    private nearClipPlane: number;
+
+    constructor(fov: number = Math.PI / 2) {
+        this._fov = fov;
+        this.nearClipPlane = 1 / Math.tan(this._fov / 2);
+    }
+
+    get fov(): number {
+        return this._fov;
+    }
+
+    set fov(fov: number) {
+        this._fov = fov;
+        this.nearClipPlane = 1 / Math.tan(this._fov / 2);
+    }
 
     /**
      * Projects a 3D point (vertex) to 2D plane with scaling
@@ -70,8 +151,8 @@ export class Camera {
      * @returns Scaled 2D coordinates of a projected vertex
      */
     public getVertexProjection(vertex: Vertex): {x: number, y: number} {
-        let x: number = (vertex.x / vertex.z) * this.nearClipPlane * this.projectionWidth;
-        let y: number = (vertex.y / vertex.z) * this.nearClipPlane * this.projectionHeight;
+        let x: number = (vertex.x / vertex.z) * this.nearClipPlane * this.projectionWidth + this.projectionWidth / 2;
+        let y: number = (vertex.y / vertex.z) * this.nearClipPlane * this.projectionHeight + this.projectionHeight / 2;
         return {x: x,  y: y};
     }
 
