@@ -7,24 +7,31 @@ _chai.should();
 _chai.expect;
 
 @suite class GeometryTest {
-    private vertex1: Vertex;
-    private vertex1_same: Vertex;
-    private vertex2: Vertex;
-    private edge1: Edge;
-
-    before() {
-        this.vertex1 = new Vertex(1, 2, 3);
-        this.vertex1_same = new Vertex(1, 2, 3);
-        this.vertex2 = new Vertex(3, 4, 5);
-        this.edge1 = new Edge(this.vertex1, this.vertex2);
-    }
 
     @test 'Vertex equality'() {
-        expect(this.vertex1.equals(this.vertex1_same)).true;
+        let vertex1: Vertex = new Vertex(1, 2, 3);
+        let vertex2: Vertex = new Vertex(1.0, 2, 3);
+        expect(vertex1.equals(vertex2)).true;
     }
 
     @test 'Edge length'() {
-        expect(this.edge1.length()).closeTo(3.464, 0.01);
+        let vertex1: Vertex = new Vertex(1, 2, 3);
+        let vertex2: Vertex = new Vertex(3, 4, 5);
+        expect(new Edge(vertex1, vertex2).length()).closeTo(3.464, 0.01);
+    }
+
+    @test 'Edge connection'() {
+        let vertex1: Vertex = new Vertex(-1, 0, 3);
+        let vertex2: Vertex = new Vertex(3, 4, 5);
+        let vertex3: Vertex = new Vertex(2, -9, 3);
+        let vertex4: Vertex = new Vertex(2, 3, 3);
+        let edge1: Edge = new Edge(vertex1, vertex2);
+        let edge2: Edge = new Edge(vertex2, vertex3);
+        let edge3: Edge = new Edge(vertex3, vertex4);
+        expect(edge1.isConnected(edge2)).true;
+        expect(edge3.isConnected(edge2)).true;
+        expect(edge2.isConnected(edge3)).true;
+        expect(edge3.isConnected(edge1)).false;
     }
 
 }
