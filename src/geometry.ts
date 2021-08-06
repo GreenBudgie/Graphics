@@ -1,4 +1,4 @@
-export class Vertex {
+export class Point3D {
     public x: number;
     public y: number;
     public z: number;
@@ -16,22 +16,15 @@ export class Vertex {
     public clone(): Vertex {
         return new Vertex(this.x, this.y, this.z);
     }
-
-    public draw(camera: Camera, context: CanvasRenderingContext2D) {
-        let projection = camera.getVertexProjection(this);
-        context.beginPath();
-        context.arc(projection.x, projection.y, 4, 0, 2 * Math.PI, false);
-        context.fill();
-    }
-
-    public move(x: number, y: number, z: number): void {
+    
+    public translate(x: number, y: number, z: number): void {
         this.x += x;
         this.y += y;
         this.z += z;
     }
 
     /**
-     * Rotates the vertex around the arbitrary axis (a unit vector).
+     * Rotates the point around the arbitrary axis (a unit vector).
      * The given vector might not be normalized on input.
      * @param vx X vector component
      * @param vy Y vector component
@@ -60,6 +53,17 @@ export class Vertex {
         this.x = x;
         this.y = y;
         this.z = z;
+    }
+
+}
+
+export class Vertex extends Point3D {
+
+    public draw(camera: Camera, context: CanvasRenderingContext2D) {
+        let projection = camera.getVertexProjection(this);
+        context.beginPath();
+        context.arc(projection.x, projection.y, 4, 0, 2 * Math.PI, false);
+        context.fill();
     }
     
 }
@@ -103,8 +107,8 @@ export class Edge {
     }
 
     public move(x: number, y: number, z: number): void {
-        this.vertex1.move(x, y, z);
-        this.vertex2.move(x, y, z);
+        this.vertex1.translate(x, y, z);
+        this.vertex2.translate(x, y, z);
     }
 
     public rotate(vx: number, vy: number, vz: number, angle: number): void {
@@ -170,7 +174,7 @@ export class Face {
     }
 
     public move(x: number, y: number, z: number): void {
-        this.vertices.forEach(vertex => vertex.move(x, y, z));
+        this.vertices.forEach(vertex => vertex.translate(x, y, z));
     }
 
     public rotate(vx: number, vy: number, vz: number, angle: number): void {
@@ -298,7 +302,7 @@ export class Shape {
     }
 
     public move(x: number, y: number, z: number): void {
-        this.vertices.forEach(vertex => vertex.move(x, y, z));
+        this.vertices.forEach(vertex => vertex.translate(x, y, z));
     }
 
     public rotate(vx: number, vy: number, vz: number, angle: number): void {
@@ -310,6 +314,7 @@ export class Shape {
 export class Camera {
     public readonly projectionWidth: number = 640;
     public readonly projectionHeight: number = 640;
+    public readonly position: Point3D = new Point3D(0, 0, 0);
     private _fov: number //Field of view in radians
     private nearClipPlane: number;
 
@@ -333,8 +338,8 @@ export class Camera {
      * @returns Scaled 2D coordinates of a projected vertex
      */
     public getVertexProjection(vertex: Vertex): {x: number, y: number} {
-        let x: number = (vertex.x / vertex.z) * this.nearClipPlane * this.projectionWidth + this.projectionWidth / 2;
-        let y: number = (-vertex.y / vertex.z) * this.nearClipPlane * this.projectionHeight + this.projectionHeight / 2;
+        let x: number = ((vertex.x - this.position.x) / (vertex.z - this.position.z)) * this.nearClipPlane * this.projectionWidth + this.projectionWidth / 2;
+        let y: number = -((vertex.y - this.position.y) / (vertex.z - this.position.z)) * this.nearClipPlane * this.projectionHeight + this.projectionHeight / 2;
         return {x: x,  y: y};
     }
 

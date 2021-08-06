@@ -22,15 +22,11 @@ let cube: Shape = cubeBuilder.defineVertices(
 .defineFaces(1, 2, 6, 5)
 .build();
 
-let cube2: Shape = cube.clone();
-
-cube.move(-0.8, 0, 4);
-cube2.move(1.2, 0.5, 7);
+cube.move(0, 0, 4);
 
 let camera: Camera = new Camera();
 
 setInterval(() => {
     context.clearRect(0, 0, 640, 640);
     cube.draw(camera, context);
-    cube2.draw(camera, context);
 }, 15);
