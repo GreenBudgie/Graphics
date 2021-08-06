@@ -1,4 +1,4 @@
-import { Vertex, Edge, Face } from "../src/geometry"
+import { Vertex, Edge, Face, Shape, ShapeBuilder } from "../src/geometry"
 import { suite, test } from '@testdeck/mocha';
 import * as _chai from 'chai';
 import { expect } from 'chai';
@@ -32,6 +32,14 @@ _chai.expect;
         expect(edge3.isConnected(edge2)).true;
         expect(edge2.isConnected(edge3)).true;
         expect(edge3.isConnected(edge1)).false;
+    }
+
+    @test 'Face equality'() {
+        let face1: Face = new Face(new Vertex(1, 2, 3), new Vertex(4, 5, 6), new Vertex(7, 8, 9));
+        let face2: Face = new Face(new Vertex(1, 2, 3), new Vertex(4, 5, 6), new Vertex(7, 8, 9));
+        let face3: Face = new Face(new Vertex(1, 2, 3), new Vertex(4, 0, 6), new Vertex(7, 8, 9));
+        expect(face1.equals(face2)).true;
+        expect(face1.equals(face3)).false;
     }
 
 }

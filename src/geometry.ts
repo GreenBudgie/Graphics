@@ -115,20 +115,21 @@ export class Edge {
 }
 
 export class Face {
-    public readonly vertices: Vertex[];
+    public readonly vertices: Vertex[] = [];
+    public adjacentFaces: Face[] = [];
 
-    constructor(...vertices: Vertex[]) {
-        if(vertices.length < 3) throw new Error("Cannot create a face out of less than 3 vertices");
-        this.vertices = vertices;
+    constructor(vertex1: Vertex, vertex2: Vertex, vertex3: Vertex) {
+        if(vertex1.equals(vertex2) || vertex1.equals(vertex3) || vertex2.equals(vertex3)) throw new Error("The face cannot have identical vertices");
+        this.vertices[0] = vertex1;
+        this.vertices[1] = vertex2;
+        this.vertices[2] = vertex3;
     }
 
     public clone(): Face {
-        let verticesCopy: Vertex[] = [];
-        this.vertices.forEach(vertex => verticesCopy.push(vertex.clone()));
-        return new Face(...verticesCopy);
+        return new Face(this.vertices[0].clone(), this.vertices[1].clone(), this.vertices[2].clone());
     }
 
-    public draw(camera: Camera, context: CanvasRenderingContext2D) {
+    public draw(camera: Camera, context: CanvasRenderingContext2D): void {
         context.beginPath();
         let firstProjection = camera.getVertexProjection(this.vertices[0]);
         context.moveTo(firstProjection.x, firstProjection.y);
@@ -138,6 +139,34 @@ export class Face {
         }
         context.closePath();
         context.stroke();
+    }
+
+    public getIdenticalVerticesCount(anotherFace: Face): number {
+        let sameVertices = 0;
+        this.vertices.forEach(vertex => {
+            anotherFace.vertices.forEach(anotherVertex => {
+                if(vertex.equals(anotherVertex)) sameVertices++;
+            });
+        });
+        return sameVertices;
+    }
+
+    public getAdjacentVertices(anotherFace: Face): Vertex[] | null {
+        let adjacentVertices: Vertex[] = [];
+        this.vertices.forEach(vertex => {
+            anotherFace.vertices.forEach(anotherVertex => {
+                if(vertex.equals(anotherVertex)) adjacentVertices.push(vertex);
+            });
+        });
+        return adjacentVertices.length == 2 ? adjacentVertices : null;
+    }
+
+    public isAdjacent(anotherFace: Face): boolean {
+        return this.getIdenticalVerticesCount(anotherFace) == 2;
+    }
+
+    public equals(anotherFace: Face): boolean {
+        return this.getIdenticalVerticesCount(anotherFace) == 3;
     }
 
     public move(x: number, y: number, z: number): void {
@@ -150,25 +179,106 @@ export class Face {
 
 }
 
-export class Shape {
-    public readonly faces: Face[];
+export class ShapeBuilder {
+    public vertices: Vertex[];
+    public faces: Face[] = [];
 
-    constructor(...faces: Face[]) {
+    /**
+     * Defines the vertices the shape will have, but doesn't make any connections between them
+     * @param vertices Vertices to define
+     */
+    public defineVertices(...vertices: Vertex[]): ShapeBuilder {
+        if(this.vertices != undefined) throw new Error("Vertices may only be defined once");
+        for(let i = 0; i < vertices.length; i++) {
+            for(let j = i + 1; j < vertices.length; j++) {
+                if(vertices[i].equals(vertices[j])) throw new Error("The shape must have no identical vertices");
+            }
+        }
+        this.vertices = vertices;
+        return this;
+    }
+
+    /**
+     * Defines a new face by the given vertex indices.
+     * Vertices must be defined first.
+     */
+     public defineFace(vertex1: number, vertex2: number, vertex3: number): ShapeBuilder {
+        if(this.vertices == undefined) throw new Error("Vertices are not yet defined");
+        let newFace: Face = new Face(this.vertices[vertex1], this.vertices[vertex2], this.vertices[vertex3]);
+        this.faces.forEach(face => {
+            if(face.equals(newFace)) throw new Error("There cannot be identical faces on the shape");
+        });
+        this.faces.push(newFace);
+        return this;
+    }
+
+    /**
+     * Defines any number of triangular faces by the given vertices.
+     * Vertices will be connected sequentially to the first given vertex.
+     * This method is great for defining polygons.
+     */
+    public defineFaces(...vertices: number[]): ShapeBuilder {
+        if(vertices.length < 3) throw new Error("No faces can be defined out of less that 3 vertices");;
+        if(this.vertices == undefined) throw new Error("Vertices are not yet defined");
+        this.defineFace(vertices[0], vertices[1], vertices[2]);
+        for(let i = 2; i < vertices.length - 1; i++) {
+            this.defineFace(vertices[0], vertices[i], vertices[i + 1]);
+        }
+        return this;
+    }
+
+    public build(): Shape {
+        if(this.vertices == undefined) throw new Error("Cannot build a shape: vertices are not yet defined");
+        if(this.faces.length == 0) throw new Error("Cannot build a shape: there are no faces defined");
+        this.faces.forEach(face => {
+            this.faces.forEach(anotherFace => {
+                if(!face.equals(anotherFace) && face.isAdjacent(anotherFace)) face.adjacentFaces.push(anotherFace);
+            });
+        });
+        //Checking that all faces are connected
+        let checked: Face[] = [];
+        function checkRecursively(face: Face) {
+            checked.push(face);
+            face.adjacentFaces.forEach(adjacentFace => {
+                if(!checked.includes(adjacentFace)) checkRecursively(adjacentFace);
+            });
+        };
+        checkRecursively(this.faces[0]);
+        if(checked.length != this.faces.length) throw new Error("Cannot build a shape: not all faces are connected");
+        return new Shape(this.vertices, this.faces);
+    }
+
+}
+
+export class Shape {
+    public readonly vertices: Vertex[];
+    public readonly faces: Face[];
+    public drawOptions = {vertex: false, edge: true, face: true};
+
+    constructor(vertices: Vertex[], faces: Face[]) {
+        this.vertices = vertices;
         this.faces = faces;
     }
 
-    public draw(camera: Camera, context: CanvasRenderingContext2D) {
-        this.faces.forEach(face => {
-            face.draw(camera, context);
-        });
+    public draw(camera: Camera, context: CanvasRenderingContext2D): void {
+        if(this.drawOptions.vertex) {
+            this.vertices.forEach(vertex => {
+                vertex.draw(camera, context);
+            });
+        }
+        if(this.drawOptions.face) {
+            this.faces.forEach(face => {
+                face.draw(camera, context);
+            });
+        }
     }
 
     public move(x: number, y: number, z: number): void {
-        this.faces.forEach(face => face.move(x, y, z));
+        this.vertices.forEach(vertex => vertex.move(x, y, z));
     }
 
     public rotate(vx: number, vy: number, vz: number, angle: number): void {
-        this.faces.forEach(face => face.rotate(vx, vy, vz, angle));
+        this.vertices.forEach(vertex => vertex.rotate(vx, vy, vz, angle));
     }
 
 }

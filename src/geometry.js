@@ -92,15 +92,17 @@ export class Edge {
     }
 }
 export class Face {
-    constructor(...vertices) {
-        if (vertices.length < 3)
-            throw new Error("Cannot create a face out of less than 3 vertices");
-        this.vertices = vertices;
+    constructor(vertex1, vertex2, vertex3) {
+        this.vertices = [];
+        this.adjacentFaces = [];
+        if (vertex1.equals(vertex2) || vertex1.equals(vertex3) || vertex2.equals(vertex3))
+            throw new Error("The face cannot have identical vertices");
+        this.vertices[0] = vertex1;
+        this.vertices[1] = vertex2;
+        this.vertices[2] = vertex3;
     }
     clone() {
-        let verticesCopy = [];
-        this.vertices.forEach(vertex => verticesCopy.push(vertex.clone()));
-        return new Face(...verticesCopy);
+        return new Face(this.vertices[0].clone(), this.vertices[1].clone(), this.vertices[2].clone());
     }
     draw(camera, context) {
         context.beginPath();
@@ -113,6 +115,32 @@ export class Face {
         context.closePath();
         context.stroke();
     }
+    getIdenticalVerticesCount(anotherFace) {
+        let sameVertices = 0;
+        this.vertices.forEach(vertex => {
+            anotherFace.vertices.forEach(anotherVertex => {
+                if (vertex.equals(anotherVertex))
+                    sameVertices++;
+            });
+        });
+        return sameVertices;
+    }
+    getAdjacentVertices(anotherFace) {
+        let adjacentVertices = [];
+        this.vertices.forEach(vertex => {
+            anotherFace.vertices.forEach(anotherVertex => {
+                if (vertex.equals(anotherVertex))
+                    adjacentVertices.push(vertex);
+            });
+        });
+        return adjacentVertices.length == 2 ? adjacentVertices : null;
+    }
+    isAdjacent(anotherFace) {
+        return this.getIdenticalVerticesCount(anotherFace) == 2;
+    }
+    equals(anotherFace) {
+        return this.getIdenticalVerticesCount(anotherFace) == 3;
+    }
     move(x, y, z) {
         this.vertices.forEach(vertex => vertex.move(x, y, z));
     }
@@ -120,20 +148,108 @@ export class Face {
         this.vertices.forEach(vertex => vertex.rotate(vx, vy, vz, angle));
     }
 }
+export class ShapeBuilder {
+    constructor() {
+        this.faces = [];
+    }
+    /**
+     * Defines the vertices the shape will have, but doesn't make any connections between them
+     * @param vertices Vertices to define
+     */
+    defineVertices(...vertices) {
+        if (this.vertices != undefined)
+            throw new Error("Vertices may only be defined once");
+        for (let i = 0; i < vertices.length; i++) {
+            for (let j = i + 1; j < vertices.length; j++) {
+                if (vertices[i].equals(vertices[j]))
+                    throw new Error("The shape must have no identical vertices");
+            }
+        }
+        this.vertices = vertices;
+        return this;
+    }
+    /**
+     * Defines a new face by the given vertex indices.
+     * Vertices must be defined first.
+     */
+    defineFace(vertex1, vertex2, vertex3) {
+        if (this.vertices == undefined)
+            throw new Error("Vertices are not yet defined");
+        let newFace = new Face(this.vertices[vertex1], this.vertices[vertex2], this.vertices[vertex3]);
+        this.faces.forEach(face => {
+            if (face.equals(newFace))
+                throw new Error("There cannot be identical faces on the shape");
+        });
+        this.faces.push(newFace);
+        return this;
+    }
+    /**
+     * Defines any number of triangular faces by the given vertices.
+     * Vertices will be connected sequentially to the first given vertex.
+     * This method is great for defining polygons.
+     */
+    defineFaces(...vertices) {
+        if (vertices.length < 3)
+            throw new Error("No faces can be defined out of less that 3 vertices");
+        ;
+        if (this.vertices == undefined)
+            throw new Error("Vertices are not yet defined");
+        this.defineFace(vertices[0], vertices[1], vertices[2]);
+        for (let i = 2; i < vertices.length - 1; i++) {
+            this.defineFace(vertices[0], vertices[i], vertices[i + 1]);
+        }
+        return this;
+    }
+    build() {
+        if (this.vertices == undefined)
+            throw new Error("Cannot build a shape: vertices are not yet defined");
+        if (this.faces.length == 0)
+            throw new Error("Cannot build a shape: there are no faces defined");
+        this.faces.forEach(face => {
+            this.faces.forEach(anotherFace => {
+                if (!face.equals(anotherFace) && face.isAdjacent(anotherFace))
+                    face.adjacentFaces.push(anotherFace);
+            });
+        });
+        //Checking that all faces are connected
+        let checked = [];
+        function checkRecursively(face) {
+            checked.push(face);
+            face.adjacentFaces.forEach(adjacentFace => {
+                if (!checked.includes(adjacentFace))
+                    checkRecursively(adjacentFace);
+            });
+        }
+        ;
+        checkRecursively(this.faces[0]);
+        if (checked.length != this.faces.length)
+            throw new Error("Cannot build a shape: not all faces are connected");
+        return new Shape(this.vertices, this.faces);
+    }
+}
 export class Shape {
-    constructor(...faces) {
+    constructor(vertices, faces) {
+        this.drawOptions = { vertex: false, edge: true, face: true };
+        this.vertices = vertices;
         this.faces = faces;
     }
     draw(camera, context) {
-        this.faces.forEach(face => {
-            face.draw(camera, context);
-        });
+        if (this.drawOptions.vertex) {
+            this.vertices.forEach(vertex => {
+                vertex.draw(camera, context);
+            });
+        }
+        if (this.drawOptions.face) {
+            this.faces.forEach(face => {
+                face.draw(camera, context);
+            });
+        }
     }
     move(x, y, z) {
-        this.faces.forEach(face => face.move(x, y, z));
+        this.vertices.forEach(vertex => vertex.move(x, y, z));
     }
     rotate(vx, vy, vz, angle) {
-        this.faces.forEach(face => face.rotate(vx, vy, vz, angle));
+        this.vertices.forEach(vertex => vertex.rotate(vx, vy, vz, angle));
     }
 }
 export class Camera {
