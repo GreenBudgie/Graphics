@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Camera = exports.Shape = exports.ShapeBuilder = exports.Face = exports.Edge = exports.Vertex = void 0;
-class Vertex {
+export class Vertex {
     constructor(x, y, z) {
         this.x = x;
         this.y = y;
@@ -55,8 +52,7 @@ class Vertex {
         this.z = z;
     }
 }
-exports.Vertex = Vertex;
-class Edge {
+export class Edge {
     constructor(vertex1, vertex2) {
         if (vertex1.equals(vertex2))
             throw new Error("Cannot create an edge out of two identical vertices");
@@ -95,8 +91,7 @@ class Edge {
         this.vertex2.rotate(vx, vy, vz, angle);
     }
 }
-exports.Edge = Edge;
-class Face {
+export class Face {
     constructor(vertex1, vertex2, vertex3) {
         this.vertices = [];
         this.adjacentFaces = [];
@@ -153,8 +148,7 @@ class Face {
         this.vertices.forEach(vertex => vertex.rotate(vx, vy, vz, angle));
     }
 }
-exports.Face = Face;
-class ShapeBuilder {
+export class ShapeBuilder {
     constructor() {
         this.faces = [];
     }
@@ -235,8 +229,7 @@ class ShapeBuilder {
         return new Shape(this.vertices, this.faces);
     }
 }
-exports.ShapeBuilder = ShapeBuilder;
-class Shape {
+export class Shape {
     constructor(vertices, faces) {
         this.drawOptions = { vertex: false, edge: true, face: true };
         this.vertices = vertices;
@@ -254,6 +247,26 @@ class Shape {
             });
         }
     }
+    clone() {
+        let verticesCopy = [];
+        this.vertices.forEach(vertex => verticesCopy.push(vertex.clone()));
+        let facesCopy = [];
+        this.faces.forEach(face => {
+            let newVertices = [];
+            for (let i = 0; i < face.vertices.length; i++) {
+                for (let j = 0; j < verticesCopy.length; j++) {
+                    if (face.vertices[i].equals(verticesCopy[j])) {
+                        newVertices.push(verticesCopy[j]);
+                        break;
+                    }
+                }
+            }
+            facesCopy.push(new Face(newVertices[0], newVertices[1], newVertices[2]));
+        });
+        let shapeCopy = new Shape(verticesCopy, facesCopy);
+        shapeCopy.drawOptions = this.drawOptions;
+        return shapeCopy;
+    }
     move(x, y, z) {
         this.vertices.forEach(vertex => vertex.move(x, y, z));
     }
@@ -261,8 +274,7 @@ class Shape {
         this.vertices.forEach(vertex => vertex.rotate(vx, vy, vz, angle));
     }
 }
-exports.Shape = Shape;
-class Camera {
+export class Camera {
     constructor(fov = Math.PI / 2) {
         this.projectionWidth = 640;
         this.projectionHeight = 640;
@@ -287,5 +299,4 @@ class Camera {
         return { x: x, y: y };
     }
 }
-exports.Camera = Camera;
 //# sourceMappingURL=geometry.js.map

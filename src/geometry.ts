@@ -276,6 +276,27 @@ export class Shape {
         }
     }
 
+    public clone(): Shape {
+        let verticesCopy: Vertex[] = [];
+        this.vertices.forEach(vertex => verticesCopy.push(vertex.clone()));
+        let facesCopy: Face[] = [];
+        this.faces.forEach(face => {
+            let newVertices: Vertex[] = [];
+            for(let i = 0; i < face.vertices.length; i++) {
+                for(let j = 0; j < verticesCopy.length; j++) {
+                    if(face.vertices[i].equals(verticesCopy[j])) {
+                        newVertices.push(verticesCopy[j]);
+                        break;
+                    }
+                }
+            }
+            facesCopy.push(new Face(newVertices[0], newVertices[1], newVertices[2]));
+        });
+        let shapeCopy: Shape = new Shape(verticesCopy, facesCopy);
+        shapeCopy.drawOptions = this.drawOptions;
+        return shapeCopy;
+    }
+
     public move(x: number, y: number, z: number): void {
         this.vertices.forEach(vertex => vertex.move(x, y, z));
     }

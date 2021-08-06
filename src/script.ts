@@ -1,18 +1,18 @@
-import * as Geometry from "./geometry.js"
+import { Vertex, Edge, Face, Shape, ShapeBuilder, Camera } from "./geometry.js"
 
 let canvas: HTMLCanvasElement = document.getElementById('canvas') as HTMLCanvasElement;
 let context: CanvasRenderingContext2D = canvas.getContext('2d');
 
-let cubeBuilder: Geometry.ShapeBuilder = new Geometry.ShapeBuilder;
-let cube: Geometry.Shape = cubeBuilder.defineVertices(
-    new Geometry.Vertex(1, 1, 1),
-    new Geometry.Vertex(1, -1, 1),
-    new Geometry.Vertex(-1, -1, 1),
-    new Geometry.Vertex(-1, 1, 1),
-    new Geometry.Vertex(1, 1, -1),
-    new Geometry.Vertex(1, -1, -1),
-    new Geometry.Vertex(-1, -1, -1),
-    new Geometry.Vertex(-1, 1, -1),
+let cubeBuilder: ShapeBuilder = new ShapeBuilder;
+let cube: Shape = cubeBuilder.defineVertices(
+    new Vertex(1, 1, 1),
+    new Vertex(1, -1, 1),
+    new Vertex(-1, -1, 1),
+    new Vertex(-1, 1, 1),
+    new Vertex(1, 1, -1),
+    new Vertex(1, -1, -1),
+    new Vertex(-1, -1, -1),
+    new Vertex(-1, 1, -1),
 )
 .defineFaces(0, 1, 2, 3)
 .defineFaces(0, 1, 5, 4)
@@ -22,11 +22,15 @@ let cube: Geometry.Shape = cubeBuilder.defineVertices(
 .defineFaces(1, 2, 6, 5)
 .build();
 
-cube.move(0, 0, 4);
+let cube2: Shape = cube.clone();
 
-let camera: Geometry.Camera = new Geometry.Camera();
+cube.move(-0.8, 0, 4);
+cube2.move(1.2, 0.5, 7);
+
+let camera: Camera = new Camera();
 
 setInterval(() => {
     context.clearRect(0, 0, 640, 640);
     cube.draw(camera, context);
+    cube2.draw(camera, context);
 }, 15);
