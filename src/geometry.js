@@ -1,4 +1,7 @@
-export class Vertex {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Camera = exports.Shape = exports.ShapeBuilder = exports.Face = exports.Edge = exports.Vertex = void 0;
+class Vertex {
     constructor(x, y, z) {
         this.x = x;
         this.y = y;
@@ -52,7 +55,8 @@ export class Vertex {
         this.z = z;
     }
 }
-export class Edge {
+exports.Vertex = Vertex;
+class Edge {
     constructor(vertex1, vertex2) {
         if (vertex1.equals(vertex2))
             throw new Error("Cannot create an edge out of two identical vertices");
@@ -91,7 +95,8 @@ export class Edge {
         this.vertex2.rotate(vx, vy, vz, angle);
     }
 }
-export class Face {
+exports.Edge = Edge;
+class Face {
     constructor(vertex1, vertex2, vertex3) {
         this.vertices = [];
         this.adjacentFaces = [];
@@ -148,7 +153,8 @@ export class Face {
         this.vertices.forEach(vertex => vertex.rotate(vx, vy, vz, angle));
     }
 }
-export class ShapeBuilder {
+exports.Face = Face;
+class ShapeBuilder {
     constructor() {
         this.faces = [];
     }
@@ -222,12 +228,15 @@ export class ShapeBuilder {
         }
         ;
         checkRecursively(this.faces[0]);
-        if (checked.length != this.faces.length)
+        if (checked.length != this.faces.length) {
+            this.faces.forEach(face => face.adjacentFaces = []);
             throw new Error("Cannot build a shape: not all faces are connected");
+        }
         return new Shape(this.vertices, this.faces);
     }
 }
-export class Shape {
+exports.ShapeBuilder = ShapeBuilder;
+class Shape {
     constructor(vertices, faces) {
         this.drawOptions = { vertex: false, edge: true, face: true };
         this.vertices = vertices;
@@ -252,7 +261,8 @@ export class Shape {
         this.vertices.forEach(vertex => vertex.rotate(vx, vy, vz, angle));
     }
 }
-export class Camera {
+exports.Shape = Shape;
+class Camera {
     constructor(fov = Math.PI / 2) {
         this.projectionWidth = 640;
         this.projectionHeight = 640;
@@ -277,4 +287,5 @@ export class Camera {
         return { x: x, y: y };
     }
 }
+exports.Camera = Camera;
 //# sourceMappingURL=geometry.js.map

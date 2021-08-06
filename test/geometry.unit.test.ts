@@ -42,4 +42,23 @@ _chai.expect;
         expect(face1.equals(face3)).false;
     }
 
+    @test 'Shape build errors'() {
+        let cubeBuilder: ShapeBuilder = new ShapeBuilder;
+        cubeBuilder.defineVertices(
+            new Vertex(1, 1, 1),
+            new Vertex(1, -1, 1),
+            new Vertex(-1, -1, 1),
+            new Vertex(-1, 1, 1),
+            new Vertex(1, 1, -1),
+            new Vertex(1, -1, -1),
+            new Vertex(-1, -1, -1),
+            new Vertex(-1, 1, -1),
+        )
+        .defineFaces(0, 3, 7, 4)
+        .defineFaces(1, 2, 6, 5);
+        expect(() => cubeBuilder.build()).to.throw("Cannot build a shape: not all faces are connected");
+        cubeBuilder.defineFaces(0, 1, 2, 3)
+        expect(() => cubeBuilder.build()).to.not.throw();
+    }
+
 }

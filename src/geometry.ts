@@ -244,7 +244,10 @@ export class ShapeBuilder {
             });
         };
         checkRecursively(this.faces[0]);
-        if(checked.length != this.faces.length) throw new Error("Cannot build a shape: not all faces are connected");
+        if(checked.length != this.faces.length) {
+            this.faces.forEach(face => face.adjacentFaces = []);
+            throw new Error("Cannot build a shape: not all faces are connected");
+        }
         return new Shape(this.vertices, this.faces);
     }
 

@@ -36,6 +36,22 @@ let GeometryTest = class GeometryTest {
         chai_1.expect(edge2.isConnected(edge3)).true;
         chai_1.expect(edge3.isConnected(edge1)).false;
     }
+    'Face equality'() {
+        let face1 = new geometry_1.Face(new geometry_1.Vertex(1, 2, 3), new geometry_1.Vertex(4, 5, 6), new geometry_1.Vertex(7, 8, 9));
+        let face2 = new geometry_1.Face(new geometry_1.Vertex(1, 2, 3), new geometry_1.Vertex(4, 5, 6), new geometry_1.Vertex(7, 8, 9));
+        let face3 = new geometry_1.Face(new geometry_1.Vertex(1, 2, 3), new geometry_1.Vertex(4, 0, 6), new geometry_1.Vertex(7, 8, 9));
+        chai_1.expect(face1.equals(face2)).true;
+        chai_1.expect(face1.equals(face3)).false;
+    }
+    'Shape build errors'() {
+        let cubeBuilder = new geometry_1.ShapeBuilder;
+        cubeBuilder.defineVertices(new geometry_1.Vertex(1, 1, 1), new geometry_1.Vertex(1, -1, 1), new geometry_1.Vertex(-1, -1, 1), new geometry_1.Vertex(-1, 1, 1), new geometry_1.Vertex(1, 1, -1), new geometry_1.Vertex(1, -1, -1), new geometry_1.Vertex(-1, -1, -1), new geometry_1.Vertex(-1, 1, -1))
+            .defineFaces(0, 3, 7, 4)
+            .defineFaces(1, 2, 6, 5);
+        chai_1.expect(() => cubeBuilder.build()).to.throw("Cannot build a shape: not all faces are connected");
+        cubeBuilder.defineFaces(0, 1, 2, 3);
+        chai_1.expect(() => cubeBuilder.build()).to.not.throw();
+    }
 };
 __decorate([
     mocha_1.test
@@ -46,6 +62,12 @@ __decorate([
 __decorate([
     mocha_1.test
 ], GeometryTest.prototype, "Edge connection", null);
+__decorate([
+    mocha_1.test
+], GeometryTest.prototype, "Face equality", null);
+__decorate([
+    mocha_1.test
+], GeometryTest.prototype, "Shape build errors", null);
 GeometryTest = __decorate([
     mocha_1.suite
 ], GeometryTest);
