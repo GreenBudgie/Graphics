@@ -4,26 +4,57 @@ export class Point3D {
         this.y = y;
         this.z = z;
     }
-    equals(vertex) {
-        return this.x == vertex.x && this.y == vertex.y && this.z == vertex.z;
+    equals(point) {
+        return this.x == point.x && this.y == point.y && this.z == point.z;
     }
     clone() {
-        return new Vertex(this.x, this.y, this.z);
+        return new Point3D(this.x, this.y, this.z);
     }
     translate(x, y, z) {
         this.x += x;
         this.y += y;
         this.z += z;
     }
+    rotateX(point, angle) {
+        let cosA = Math.cos(angle);
+        let sinA = Math.sin(angle);
+        let xMatrix = [
+            [1, 0, 0],
+            [0, cosA, -sinA],
+            [0, sinA, cosA]
+        ];
+        this.rotateByMatrix(point, xMatrix);
+    }
+    rotateY(point, angle) {
+        let cosA = Math.cos(angle);
+        let sinA = Math.sin(angle);
+        let yMatrix = [
+            [cosA, 0, sinA],
+            [0, 1, 0],
+            [-sinA, 0, cosA]
+        ];
+        this.rotateByMatrix(point, yMatrix);
+    }
+    rotateZ(point, angle) {
+        let cosA = Math.cos(angle);
+        let sinA = Math.sin(angle);
+        let zMatrix = [
+            [cosA, -sinA, 0],
+            [sinA, cosA, 0],
+            [0, 0, 1]
+        ];
+        this.rotateByMatrix(point, zMatrix);
+    }
     /**
-     * Rotates the point around the arbitrary axis (a unit vector).
+     * Rotates the point around the arbitrary axis (a unit vector) and a point.
      * The given vector might not be normalized on input.
+     * @param point The point to rotate around
      * @param vx X vector component
      * @param vy Y vector component
      * @param vz Z vector component
      * @param angle Rotation angle in radians
      */
-    rotate(vx, vy, vz, angle) {
+    rotate(point, vx, vy, vz, angle) {
         let vectorLength = Math.sqrt(vx * vx + vy * vy + vz * vz);
         if (vectorLength != 1) {
             //Normalize
@@ -38,12 +69,18 @@ export class Point3D {
             [vy * vx * (1 - cosA) + vz * sinA, cosA + vy * vy * (1 - cosA), vy * vz * (1 - cosA) - vx * sinA],
             [vz * vx * (1 - cosA) - vy * sinA, vz * vy * (1 - cosA) + vx * sinA, cosA + vz * vz * (1 - cosA)]
         ];
-        let x = rotationMatrix[0][0] * this.x + rotationMatrix[0][1] * this.y + rotationMatrix[0][2] * this.z;
-        let y = rotationMatrix[1][0] * this.x + rotationMatrix[1][1] * this.y + rotationMatrix[1][2] * this.z;
-        let z = rotationMatrix[2][0] * this.x + rotationMatrix[2][1] * this.y + rotationMatrix[2][2] * this.z;
-        this.x = x;
-        this.y = y;
-        this.z = z;
+        this.rotateByMatrix(point, rotationMatrix);
+    }
+    rotateByMatrix(point, rotationMatrix) {
+        let translatedX = this.x - point.x;
+        let translatedY = this.y - point.y;
+        let translatedZ = this.z - point.z;
+        let x = rotationMatrix[0][0] * translatedX + rotationMatrix[0][1] * translatedY + rotationMatrix[0][2] * translatedZ;
+        let y = rotationMatrix[1][0] * translatedX + rotationMatrix[1][1] * translatedY + rotationMatrix[1][2] * translatedZ;
+        let z = rotationMatrix[2][0] * translatedX + rotationMatrix[2][1] * translatedY + rotationMatrix[2][2] * translatedZ;
+        this.x = x + point.x;
+        this.y = y + point.y;
+        this.z = z + point.z;
     }
 }
 export class Vertex extends Point3D {
@@ -53,44 +90,11 @@ export class Vertex extends Point3D {
         context.arc(projection.x, projection.y, 4, 0, 2 * Math.PI, false);
         context.fill();
     }
-}
-export class Edge {
-    constructor(vertex1, vertex2) {
-        if (vertex1.equals(vertex2))
-            throw new Error("Cannot create an edge out of two identical vertices");
-        this.vertex1 = vertex1;
-        this.vertex2 = vertex2;
-    }
-    equals(edge) {
-        return (this.vertex1.equals(edge.vertex1) && this.vertex2.equals(edge.vertex2)) || (this.vertex2.equals(edge.vertex1) && this.vertex1.equals(edge.vertex2));
-    }
-    /**
-     * Returns whether the given edge is connected to the current one by one of its vertices
-     */
-    isConnected(edge) {
-        return this.vertex1.equals(edge.vertex1) || this.vertex1.equals(edge.vertex2) || this.vertex2.equals(edge.vertex1) || this.vertex2.equals(edge.vertex2);
-    }
-    length() {
-        return Math.sqrt(Math.pow(this.vertex1.x - this.vertex2.x, 2) + Math.pow(this.vertex1.y - this.vertex2.y, 2) + Math.pow(this.vertex1.z - this.vertex2.z, 2));
+    equals(vertex) {
+        return this.x == vertex.x && this.y == vertex.y && this.z == vertex.z;
     }
     clone() {
-        return new Edge(this.vertex1.clone(), this.vertex2.clone());
-    }
-    draw(camera, context) {
-        let projection1 = camera.getVertexProjection(this.vertex1);
-        let projection2 = camera.getVertexProjection(this.vertex2);
-        context.beginPath();
-        context.moveTo(projection1.x, projection1.y);
-        context.lineTo(projection2.x, projection2.y);
-        context.stroke();
-    }
-    move(x, y, z) {
-        this.vertex1.translate(x, y, z);
-        this.vertex2.translate(x, y, z);
-    }
-    rotate(vx, vy, vz, angle) {
-        this.vertex1.rotate(vx, vy, vz, angle);
-        this.vertex2.rotate(vx, vy, vz, angle);
+        return new Vertex(this.x, this.y, this.z);
     }
 }
 export class Face {
@@ -143,16 +147,17 @@ export class Face {
     equals(anotherFace) {
         return this.getIdenticalVerticesCount(anotherFace) == 3;
     }
-    move(x, y, z) {
+    translate(x, y, z) {
         this.vertices.forEach(vertex => vertex.translate(x, y, z));
     }
-    rotate(vx, vy, vz, angle) {
-        this.vertices.forEach(vertex => vertex.rotate(vx, vy, vz, angle));
+    rotate(point, vx, vy, vz, angle) {
+        this.vertices.forEach(vertex => vertex.rotate(point, vx, vy, vz, angle));
     }
 }
 export class ShapeBuilder {
     constructor() {
         this.faces = [];
+        this.origin = new Point3D(0, 0, 0);
     }
     /**
      * Defines the vertices the shape will have, but doesn't make any connections between them
@@ -202,6 +207,10 @@ export class ShapeBuilder {
         }
         return this;
     }
+    defineOrigin(origin) {
+        this.origin = origin;
+        return this;
+    }
     build() {
         if (this.vertices == undefined)
             throw new Error("Cannot build a shape: vertices are not yet defined");
@@ -228,14 +237,15 @@ export class ShapeBuilder {
             this.faces.forEach(face => face.adjacentFaces = []);
             throw new Error("Cannot build a shape: not all faces are connected");
         }
-        return new Shape(this.vertices, this.faces);
+        return new Shape(this.vertices, this.faces, this.origin);
     }
 }
 export class Shape {
-    constructor(vertices, faces) {
+    constructor(vertices, faces, origin) {
         this.drawOptions = { vertex: false, edge: true, face: true };
         this.vertices = vertices;
         this.faces = faces;
+        this.origin = origin;
     }
     draw(camera, context) {
         if (this.drawOptions.vertex) {
@@ -265,15 +275,47 @@ export class Shape {
             }
             facesCopy.push(new Face(newVertices[0], newVertices[1], newVertices[2]));
         });
-        let shapeCopy = new Shape(verticesCopy, facesCopy);
+        let shapeCopy = new Shape(verticesCopy, facesCopy, this.origin.clone());
         shapeCopy.drawOptions = this.drawOptions;
         return shapeCopy;
     }
-    move(x, y, z) {
+    translate(x, y, z) {
+        this.origin.translate(x, y, z);
         this.vertices.forEach(vertex => vertex.translate(x, y, z));
     }
+    /**
+     * Moves all vertices to their initial positions by placing the origin to (0, 0, 0)
+     */
+    resetTranslation() {
+        this.translate(-this.origin.x, -this.origin.y, -this.origin.z);
+    }
+    rotateX(angle) {
+        this.vertices.forEach(vertex => vertex.rotateX(this.origin, angle));
+    }
+    rotateXAround(point, angle) {
+        this.origin.rotateX(point, angle);
+        this.vertices.forEach(vertex => vertex.rotateX(point, angle));
+    }
+    rotateY(angle) {
+        this.vertices.forEach(vertex => vertex.rotateY(this.origin, angle));
+    }
+    rotateYAround(point, angle) {
+        this.origin.rotateY(point, angle);
+        this.vertices.forEach(vertex => vertex.rotateY(point, angle));
+    }
+    rotateZ(angle) {
+        this.vertices.forEach(vertex => vertex.rotateZ(this.origin, angle));
+    }
+    rotateZAround(point, angle) {
+        this.origin.rotateZ(point, angle);
+        this.vertices.forEach(vertex => vertex.rotateZ(point, angle));
+    }
     rotate(vx, vy, vz, angle) {
-        this.vertices.forEach(vertex => vertex.rotate(vx, vy, vz, angle));
+        this.rotateAround(this.origin, vx, vy, vz, angle);
+    }
+    rotateAround(point, vx, vy, vz, angle) {
+        this.origin.rotate(point, vx, vy, vz, angle);
+        this.vertices.forEach(vertex => vertex.rotate(point, vx, vy, vz, angle));
     }
 }
 export class Camera {

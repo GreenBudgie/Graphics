@@ -10,7 +10,7 @@ let cube = cubeBuilder.defineVertices(new Vertex(1, 1, 1), new Vertex(1, -1, 1),
     .defineFaces(0, 3, 7, 4)
     .defineFaces(1, 2, 6, 5)
     .build();
-cube.move(0, 0, 4);
+cube.translate(0, 0, 4);
 let camera = new Camera();
 setInterval(() => {
     context.clearRect(0, 0, 640, 640);

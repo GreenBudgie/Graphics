@@ -9,12 +9,12 @@ export class Point3D {
         this.z = z;
     }
 
-    public equals(vertex: Vertex): boolean {
-        return this.x == vertex.x && this.y == vertex.y && this.z == vertex.z;
+    public equals(point: Point3D): boolean {
+        return this.x == point.x && this.y == point.y && this.z == point.z;
     }
 
-    public clone(): Vertex {
-        return new Vertex(this.x, this.y, this.z);
+    public clone(): Point3D {
+        return new Point3D(this.x, this.y, this.z);
     }
     
     public translate(x: number, y: number, z: number): void {
@@ -23,15 +23,49 @@ export class Point3D {
         this.z += z;
     }
 
+    public rotateX(point: Point3D, angle: number) {
+        let cosA = Math.cos(angle);
+        let sinA = Math.sin(angle);
+        let xMatrix = [
+            [1, 0, 0],
+            [0, cosA, -sinA],
+            [0, sinA, cosA]
+        ]
+        this.rotateByMatrix(point, xMatrix);
+    }
+
+    public rotateY(point: Point3D, angle: number) {
+        let cosA = Math.cos(angle);
+        let sinA = Math.sin(angle);
+        let yMatrix = [
+            [cosA, 0, sinA],
+            [0, 1, 0],
+            [-sinA, 0, cosA]
+        ]
+        this.rotateByMatrix(point, yMatrix);
+    }
+
+    public rotateZ(point: Point3D, angle: number) {
+        let cosA = Math.cos(angle);
+        let sinA = Math.sin(angle);
+        let zMatrix = [
+            [cosA, -sinA, 0],
+            [sinA, cosA, 0],
+            [0, 0, 1]
+        ]
+        this.rotateByMatrix(point, zMatrix);
+    }
+
     /**
-     * Rotates the point around the arbitrary axis (a unit vector).
+     * Rotates the point around the arbitrary axis (a unit vector) and a point.
      * The given vector might not be normalized on input.
+     * @param point The point to rotate around
      * @param vx X vector component
      * @param vy Y vector component
      * @param vz Z vector component
      * @param angle Rotation angle in radians
      */
-    public rotate(vx: number, vy: number, vz: number, angle: number): void {
+    public rotate(point: Point3D, vx: number, vy: number, vz: number, angle: number): void {
         let vectorLength = Math.sqrt(vx * vx + vy * vy + vz * vz);
         if(vectorLength != 1) {
             //Normalize
@@ -47,12 +81,19 @@ export class Point3D {
             [vz * vx * (1 - cosA) - vy * sinA, vz * vy * (1 - cosA) + vx * sinA, cosA + vz * vz * (1 - cosA)]
         ];
         
-        let x = rotationMatrix[0][0] * this.x + rotationMatrix[0][1] * this.y + rotationMatrix[0][2] * this.z;
-        let y = rotationMatrix[1][0] * this.x + rotationMatrix[1][1] * this.y + rotationMatrix[1][2] * this.z;
-        let z = rotationMatrix[2][0] * this.x + rotationMatrix[2][1] * this.y + rotationMatrix[2][2] * this.z;
-        this.x = x;
-        this.y = y;
-        this.z = z;
+        this.rotateByMatrix(point, rotationMatrix);
+    }
+
+    private rotateByMatrix(point: Point3D, rotationMatrix: number[][]) {
+        let translatedX = this.x - point.x;
+        let translatedY = this.y - point.y;
+        let translatedZ = this.z - point.z;
+        let x = rotationMatrix[0][0] * translatedX + rotationMatrix[0][1] * translatedY + rotationMatrix[0][2] * translatedZ;
+        let y = rotationMatrix[1][0] * translatedX + rotationMatrix[1][1] * translatedY + rotationMatrix[1][2] * translatedZ;
+        let z = rotationMatrix[2][0] * translatedX + rotationMatrix[2][1] * translatedY + rotationMatrix[2][2] * translatedZ;
+        this.x = x + point.x;
+        this.y = y + point.y;
+        this.z = z + point.z;
     }
 
 }
@@ -66,54 +107,12 @@ export class Vertex extends Point3D {
         context.fill();
     }
     
-}
-
-export class Edge {
-    public readonly vertex1: Vertex;
-    public readonly vertex2: Vertex;
-
-    constructor(vertex1: Vertex, vertex2: Vertex) {
-        if(vertex1.equals(vertex2)) throw new Error("Cannot create an edge out of two identical vertices");
-        this.vertex1 = vertex1;
-        this.vertex2 = vertex2;
+    public equals(vertex: Vertex): boolean {
+        return this.x == vertex.x && this.y == vertex.y && this.z == vertex.z;
     }
 
-    public equals(edge: Edge): boolean {
-        return (this.vertex1.equals(edge.vertex1) && this.vertex2.equals(edge.vertex2)) || (this.vertex2.equals(edge.vertex1) && this.vertex1.equals(edge.vertex2));
-    }
-
-    /**
-     * Returns whether the given edge is connected to the current one by one of its vertices
-     */
-    public isConnected(edge: Edge): boolean {
-        return this.vertex1.equals(edge.vertex1) || this.vertex1.equals(edge.vertex2) || this.vertex2.equals(edge.vertex1) || this.vertex2.equals(edge.vertex2);
-    }
-
-    public length(): number {
-        return Math.sqrt(Math.pow(this.vertex1.x - this.vertex2.x, 2) + Math.pow(this.vertex1.y - this.vertex2.y, 2) + Math.pow(this.vertex1.z - this.vertex2.z, 2));
-    }
-
-    public clone(): Edge {
-        return new Edge(this.vertex1.clone(), this.vertex2.clone());
-    }
-
-    public draw(camera: Camera, context: CanvasRenderingContext2D) {
-        let projection1 = camera.getVertexProjection(this.vertex1);
-        let projection2 = camera.getVertexProjection(this.vertex2);
-        context.beginPath();
-        context.moveTo(projection1.x, projection1.y);
-        context.lineTo(projection2.x, projection2.y);
-        context.stroke();
-    }
-
-    public move(x: number, y: number, z: number): void {
-        this.vertex1.translate(x, y, z);
-        this.vertex2.translate(x, y, z);
-    }
-
-    public rotate(vx: number, vy: number, vz: number, angle: number): void {
-        this.vertex1.rotate(vx, vy, vz, angle);
-        this.vertex2.rotate(vx, vy, vz, angle);
+    public clone(): Vertex {
+        return new Vertex(this.x, this.y, this.z);
     }
 
 }
@@ -173,12 +172,12 @@ export class Face {
         return this.getIdenticalVerticesCount(anotherFace) == 3;
     }
 
-    public move(x: number, y: number, z: number): void {
+    public translate(x: number, y: number, z: number): void {
         this.vertices.forEach(vertex => vertex.translate(x, y, z));
     }
 
-    public rotate(vx: number, vy: number, vz: number, angle: number): void {
-        this.vertices.forEach(vertex => vertex.rotate(vx, vy, vz, angle));
+    public rotate(point: Point3D, vx: number, vy: number, vz: number, angle: number): void {
+        this.vertices.forEach(vertex => vertex.rotate(point, vx, vy, vz, angle));
     }
 
 }
@@ -186,6 +185,7 @@ export class Face {
 export class ShapeBuilder {
     public vertices: Vertex[];
     public faces: Face[] = [];
+    public origin: Point3D = new Point3D(0, 0, 0);
 
     /**
      * Defines the vertices the shape will have, but doesn't make any connections between them
@@ -231,6 +231,11 @@ export class ShapeBuilder {
         return this;
     }
 
+    public defineOrigin(origin: Point3D): ShapeBuilder {
+        this.origin = origin;
+        return this;
+    }
+
     public build(): Shape {
         if(this.vertices == undefined) throw new Error("Cannot build a shape: vertices are not yet defined");
         if(this.faces.length == 0) throw new Error("Cannot build a shape: there are no faces defined");
@@ -252,7 +257,7 @@ export class ShapeBuilder {
             this.faces.forEach(face => face.adjacentFaces = []);
             throw new Error("Cannot build a shape: not all faces are connected");
         }
-        return new Shape(this.vertices, this.faces);
+        return new Shape(this.vertices, this.faces, this.origin);
     }
 
 }
@@ -260,11 +265,13 @@ export class ShapeBuilder {
 export class Shape {
     public readonly vertices: Vertex[];
     public readonly faces: Face[];
+    public readonly origin: Point3D;
     public drawOptions = {vertex: false, edge: true, face: true};
 
-    constructor(vertices: Vertex[], faces: Face[]) {
+    constructor(vertices: Vertex[], faces: Face[], origin: Point3D) {
         this.vertices = vertices;
         this.faces = faces;
+        this.origin = origin;
     }
 
     public draw(camera: Camera, context: CanvasRenderingContext2D): void {
@@ -296,17 +303,57 @@ export class Shape {
             }
             facesCopy.push(new Face(newVertices[0], newVertices[1], newVertices[2]));
         });
-        let shapeCopy: Shape = new Shape(verticesCopy, facesCopy);
+        let shapeCopy: Shape = new Shape(verticesCopy, facesCopy, this.origin.clone());
         shapeCopy.drawOptions = this.drawOptions;
         return shapeCopy;
     }
 
-    public move(x: number, y: number, z: number): void {
+    public translate(x: number, y: number, z: number): void {
+        this.origin.translate(x, y, z);
         this.vertices.forEach(vertex => vertex.translate(x, y, z));
     }
 
+    /**
+     * Moves all vertices to their initial positions by placing the origin to (0, 0, 0)
+     */
+    public resetTranslation(): void {
+        this.translate(-this.origin.x, -this.origin.y, -this.origin.z);
+    }
+
+    public rotateX(angle: number) {
+        this.vertices.forEach(vertex => vertex.rotateX(this.origin, angle));
+    }
+
+    public rotateXAround(point: Point3D, angle: number) {
+        this.origin.rotateX(point, angle);
+        this.vertices.forEach(vertex => vertex.rotateX(point, angle));
+    }
+
+    public rotateY(angle: number) {
+        this.vertices.forEach(vertex => vertex.rotateY(this.origin, angle));
+    }
+
+    public rotateYAround(point: Point3D, angle: number) {
+        this.origin.rotateY(point, angle);
+        this.vertices.forEach(vertex => vertex.rotateY(point, angle));
+    }
+
+    public rotateZ(angle: number) {
+        this.vertices.forEach(vertex => vertex.rotateZ(this.origin, angle));
+    }
+
+    public rotateZAround(point: Point3D, angle: number) {
+        this.origin.rotateZ(point, angle);
+        this.vertices.forEach(vertex => vertex.rotateZ(point, angle));
+    }
+
     public rotate(vx: number, vy: number, vz: number, angle: number): void {
-        this.vertices.forEach(vertex => vertex.rotate(vx, vy, vz, angle));
+        this.rotateAround(this.origin, vx, vy, vz, angle);
+    }
+
+    public rotateAround(point: Point3D, vx: number, vy: number, vz: number, angle: number): void {
+        this.origin.rotate(point, vx, vy, vz, angle);
+        this.vertices.forEach(vertex => vertex.rotate(point, vx, vy, vz, angle));
     }
 
 }
