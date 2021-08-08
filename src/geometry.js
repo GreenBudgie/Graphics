@@ -323,6 +323,8 @@ export class Camera {
         this.projectionWidth = 640;
         this.projectionHeight = 640;
         this.position = new Point3D(0, 0, 0);
+        this.rotationYaw = 0; //X-Axis rotation
+        this.rotationPitch = 0; //Y-Axis rotation
         this._fov = fov;
         this.nearClipPlane = 1 / Math.tan(this._fov / 2);
     }
@@ -339,8 +341,12 @@ export class Camera {
      * @returns Scaled 2D coordinates of a projected vertex
      */
     getVertexProjection(vertex) {
-        let x = ((vertex.x - this.position.x) / (vertex.z - this.position.z)) * this.nearClipPlane * this.projectionWidth + this.projectionWidth / 2;
-        let y = -((vertex.y - this.position.y) / (vertex.z - this.position.z)) * this.nearClipPlane * this.projectionHeight + this.projectionHeight / 2;
+        let vertexCopy = vertex.clone();
+        vertexCopy.translate(this.position.x, this.position.y, this.position.z);
+        vertexCopy.rotateX(this.position, this.rotationYaw);
+        vertexCopy.rotateY(this.position, this.rotationPitch);
+        let x = (vertexCopy.x / vertexCopy.z) * this.nearClipPlane * this.projectionWidth + this.projectionWidth / 2;
+        let y = -(vertexCopy.y / vertexCopy.z) * this.nearClipPlane * this.projectionHeight + this.projectionHeight / 2;
         return { x: x, y: y };
     }
 }

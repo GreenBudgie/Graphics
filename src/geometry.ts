@@ -362,6 +362,8 @@ export class Camera {
     public readonly projectionWidth: number = 640;
     public readonly projectionHeight: number = 640;
     public readonly position: Point3D = new Point3D(0, 0, 0);
+    public rotationYaw = 0; //X-Axis rotation
+    public rotationPitch = 0; //Y-Axis rotation
     private _fov: number //Field of view in radians
     private nearClipPlane: number;
 
@@ -385,8 +387,12 @@ export class Camera {
      * @returns Scaled 2D coordinates of a projected vertex
      */
     public getVertexProjection(vertex: Vertex): {x: number, y: number} {
-        let x: number = ((vertex.x - this.position.x) / (vertex.z - this.position.z)) * this.nearClipPlane * this.projectionWidth + this.projectionWidth / 2;
-        let y: number = -((vertex.y - this.position.y) / (vertex.z - this.position.z)) * this.nearClipPlane * this.projectionHeight + this.projectionHeight / 2;
+        let vertexCopy = vertex.clone();
+        vertexCopy.translate(this.position.x, this.position.y, this.position.z);
+        vertexCopy.rotateX(this.position, this.rotationYaw);
+        vertexCopy.rotateY(this.position, this.rotationPitch);
+        let x: number = (vertexCopy.x / vertexCopy.z) * this.nearClipPlane * this.projectionWidth + this.projectionWidth / 2;
+        let y: number = -(vertexCopy.y / vertexCopy.z) * this.nearClipPlane * this.projectionHeight + this.projectionHeight / 2;
         return {x: x,  y: y};
     }
 
