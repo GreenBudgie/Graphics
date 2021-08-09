@@ -23,6 +23,18 @@ export class Point3D {
         this.z += z;
     }
 
+    public setPosition(x: number, y: number, z: number) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    public copyCoordinates(point: Point3D) {
+        this.x = point.x;
+        this.y = point.y;
+        this.z = point.z;
+    }
+
     public rotateX(point: Point3D, angle: number) {
         let cosA = Math.cos(angle);
         let sinA = Math.sin(angle);
@@ -362,8 +374,9 @@ export class Camera {
     public readonly projectionWidth: number = 640;
     public readonly projectionHeight: number = 640;
     public readonly position: Point3D = new Point3D(0, 0, 0);
-    public rotationYaw = 0; //X-Axis rotation
-    public rotationPitch = 0; //Y-Axis rotation
+    public readonly target: Point3D = new Point3D(0, 0, 0);
+    public rotationYaw = 0; //Horizontal rotation (left-right)
+    public rotationPitch = 0; //Vertical rotation (up-down)
     private _fov: number //Field of view in radians
     private nearClipPlane: number;
 
@@ -388,9 +401,9 @@ export class Camera {
      */
     public getVertexProjection(vertex: Vertex): {x: number, y: number} {
         let vertexCopy = vertex.clone();
-        vertexCopy.translate(this.position.x, this.position.y, this.position.z);
-        vertexCopy.rotateX(this.position, this.rotationYaw);
-        vertexCopy.rotateY(this.position, this.rotationPitch);
+        vertexCopy.translate(this.position.x, this.position.y, -this.position.z);
+        vertexCopy.rotateY(this.target, this.rotationYaw);
+        vertexCopy.rotateX(this.target, this.rotationPitch);
         let x: number = (vertexCopy.x / vertexCopy.z) * this.nearClipPlane * this.projectionWidth + this.projectionWidth / 2;
         let y: number = -(vertexCopy.y / vertexCopy.z) * this.nearClipPlane * this.projectionHeight + this.projectionHeight / 2;
         return {x: x,  y: y};

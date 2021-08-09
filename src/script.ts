@@ -1,4 +1,8 @@
 import { Vertex, Face, Shape, ShapeBuilder, Camera } from "./geometry.js"
+import * as Inputs from "./inputs.js"
+
+let camera: Camera = new Camera();
+Inputs.initCameraInputs(camera);
 
 let canvas: HTMLCanvasElement = document.getElementById('canvas') as HTMLCanvasElement;
 let context: CanvasRenderingContext2D = canvas.getContext('2d');
@@ -24,7 +28,7 @@ let cube: Shape = cubeBuilder.defineVertices(
 
 cube.translate(0, 0, 4);
 
-let camera: Camera = new Camera();
+camera.target.copyCoordinates(cube.origin);
 
 setInterval(() => {
     context.clearRect(0, 0, 640, 640);
