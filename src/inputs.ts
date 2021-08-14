@@ -29,8 +29,8 @@ function moveCamera(camera: Camera, dx: number, dy: number): void {
 }
 
 function zoomCamera(camera: Camera, zoom: number): void {
-    let zoomFactor = camera.position.distance(camera.target) * 0.1;
-    //camera.position.translate(0, 0, -zoom * zoomFactor * Math.cos(camera.rotationYaw));
+    //let zoomFactor = camera.position.distance(camera.target) * 0.1;
+    camera.position.translate(0, 0, -zoom * 1 * Math.cos(camera.rotationHorizontal));
 }
 
 function rotateCamera(camera: Camera, dx: number, dy: number): void {

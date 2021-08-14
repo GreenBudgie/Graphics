@@ -25,8 +25,8 @@ function moveCamera(camera, dx, dy) {
     camera.target.translate(x, y, 0);
 }
 function zoomCamera(camera, zoom) {
-    let zoomFactor = camera.position.distance(camera.target) * 0.1;
-    //camera.position.translate(0, 0, -zoom * zoomFactor * Math.cos(camera.rotationYaw));
+    //let zoomFactor = camera.position.distance(camera.target) * 0.1;
+    camera.position.translate(0, 0, -zoom * 1 * Math.cos(camera.rotationHorizontal));
 }
 function rotateCamera(camera, dx, dy) {
     let speedFactor = 1 / 200;

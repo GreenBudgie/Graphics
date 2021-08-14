@@ -31,5 +31,4 @@ cube.translate(0, 0, 4);
 setInterval(() => {
     context.clearRect(0, 0, 640, 640);
     cube.draw(camera, context);
-    //console.log(camera.rotationHorizontal, camera.rotationVertical);
 }, 15);

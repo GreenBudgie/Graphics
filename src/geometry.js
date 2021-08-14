@@ -369,31 +369,12 @@ export class Camera {
      * @returns Scaled 2D coordinates of a projected vertex
      */
     getVertexProjection(vertex) {
-        let r = this.nearClipPlane;
-        let cameraZ = this.position.z;
-        let vertexZ = vertex.z;
-        function getComponent(cameraW, vertexW, rotation, projectionDimension) {
-            let clipPlane1Z = r * Math.sin(rotation) + r * Math.cos(rotation) + cameraZ;
-            let clipPlane1W = r * Math.sin(rotation) - r * Math.cos(rotation) + cameraW;
-            let clipPlane2Z = r * Math.cos(rotation) - r * Math.sin(rotation) + cameraZ;
-            let clipPlane2W = r * Math.cos(rotation) + r * Math.sin(rotation) + cameraW;
-            let denominator = (cameraW - vertexW) * (clipPlane1Z - clipPlane2Z) - (cameraZ - vertexZ) * (clipPlane1W - clipPlane2W);
-            let projectionW = ((cameraW * vertexZ - cameraZ * vertexW) * (clipPlane1W - clipPlane2W) - (cameraW - vertexW) * (clipPlane1W * clipPlane2Z - clipPlane1Z * clipPlane2W)) / denominator;
-            let projectionZ = ((cameraW * vertexZ - cameraZ * vertexW) * (clipPlane1Z - clipPlane2Z) - (cameraZ - vertexZ) * (clipPlane1W * clipPlane2Z - clipPlane1Z * clipPlane2W)) / denominator;
-            let clipPlaneLength = Math.sqrt((clipPlane1W - clipPlane2W) * (clipPlane1W - clipPlane2W) + (clipPlane1Z - clipPlane2Z) * (clipPlane1Z - clipPlane2Z));
-            let distanceToPoint1 = Math.sqrt((clipPlane1W - projectionW) * (clipPlane1W - projectionW) + (clipPlane1Z - projectionZ) * (clipPlane1Z - projectionZ));
-            let distanceToPoint2 = Math.sqrt((clipPlane2W - projectionW) * (clipPlane2W - projectionW) + (clipPlane2Z - projectionZ) * (clipPlane2Z - projectionZ));
-            let scaledProjection;
-            if (distanceToPoint2 > distanceToPoint1) {
-                scaledProjection = -(2 * distanceToPoint2 / clipPlaneLength - 1);
-            }
-            else {
-                scaledProjection = 2 * distanceToPoint1 / clipPlaneLength - 1;
-            }
-            return scaledProjection * projectionDimension + projectionDimension / 2;
-        }
-        let x = getComponent(this.position.x, vertex.x, this.rotationHorizontal, this.projectionWidth);
-        let y = getComponent(this.position.y, vertex.y, this.rotationVertical, this.projectionHeight);
+        let vertexCopy = vertex.clone();
+        vertexCopy.translate(-this.position.x, -this.position.y, -this.position.z);
+        vertexCopy.rotateY(new Point3D(0, 0, 0), -this.rotationHorizontal);
+        vertexCopy.rotate(new Point3D(0, 0, 0), Math.cos(this.rotationHorizontal), 0, Math.sin(this.rotationHorizontal), -this.rotationVertical);
+        let x = (vertexCopy.x / vertexCopy.z) * this.nearClipPlane * this.projectionWidth + this.projectionWidth / 2;
+        let y = -(vertexCopy.y / vertexCopy.z) * this.nearClipPlane * this.projectionHeight + this.projectionHeight / 2;
         return { x: x, y: y };
     }
 }
