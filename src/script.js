@@ -14,9 +14,9 @@ let cube = cubeBuilder.defineVertices(new Vertex(1, 1, 1), new Vertex(1, -1, 1),
     .defineFaces(1, 2, 6, 5)
     .build();
 cube.translate(0, 0, 4);
-camera.target.copyCoordinates(cube.origin);
 setInterval(() => {
     context.clearRect(0, 0, 640, 640);
     cube.draw(camera, context);
+    //console.log(camera.rotationHorizontal, camera.rotationVertical);
 }, 15);
 //# sourceMappingURL=script.js.map

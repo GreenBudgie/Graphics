@@ -10,6 +10,12 @@ export class Point3D {
     clone() {
         return new Point3D(this.x, this.y, this.z);
     }
+    distance(point) {
+        let x = this.x - point.x;
+        let y = this.y - point.y;
+        let z = this.z - point.z;
+        return Math.sqrt(x * x + y * y + z * z);
+    }
     translate(x, y, z) {
         this.x += x;
         this.y += y;
@@ -334,8 +340,8 @@ export class Camera {
         this.projectionHeight = 640;
         this.position = new Point3D(0, 0, 0);
         this.target = new Point3D(0, 0, 0);
-        this.rotationYaw = 0; //Horizontal rotation (left-right)
-        this.rotationPitch = 0; //Vertical rotation (up-down)
+        this.rotationHorizontal = 0;
+        this.rotationVertical = 0;
         this._fov = fov;
         this.nearClipPlane = 1 / Math.tan(this._fov / 2);
     }
@@ -346,18 +352,48 @@ export class Camera {
         this._fov = fov;
         this.nearClipPlane = 1 / Math.tan(this._fov / 2);
     }
+    translate(x, y, z) {
+        this.position.translate(x, y, z);
+        this.target.translate(x, y, z);
+    }
+    rotateAroundTarget(yaw, pitch) {
+        this.position.rotateY(this.target, yaw);
+        this.position.rotateX(this.target, pitch);
+        //this.position.rotateZ(this.target, pitch * Math.sin(yaw));
+    }
+    rotateTargetAroundCamera(yaw, pitch) {
+    }
     /**
      * Projects a 3D point (vertex) to 2D plane with scaling
      * @param vertex A vertex to project
      * @returns Scaled 2D coordinates of a projected vertex
      */
     getVertexProjection(vertex) {
-        let vertexCopy = vertex.clone();
-        vertexCopy.translate(this.position.x, this.position.y, -this.position.z);
-        vertexCopy.rotateY(this.target, this.rotationYaw);
-        vertexCopy.rotateX(this.target, this.rotationPitch);
-        let x = (vertexCopy.x / vertexCopy.z) * this.nearClipPlane * this.projectionWidth + this.projectionWidth / 2;
-        let y = -(vertexCopy.y / vertexCopy.z) * this.nearClipPlane * this.projectionHeight + this.projectionHeight / 2;
+        let r = this.nearClipPlane;
+        let cameraZ = this.position.z;
+        let vertexZ = vertex.z;
+        function getComponent(cameraW, vertexW, rotation, projectionDimension) {
+            let clipPlane1Z = r * Math.sin(rotation) + r * Math.cos(rotation) + cameraZ;
+            let clipPlane1W = r * Math.sin(rotation) - r * Math.cos(rotation) + cameraW;
+            let clipPlane2Z = r * Math.cos(rotation) - r * Math.sin(rotation) + cameraZ;
+            let clipPlane2W = r * Math.cos(rotation) + r * Math.sin(rotation) + cameraW;
+            let denominator = (cameraW - vertexW) * (clipPlane1Z - clipPlane2Z) - (cameraZ - vertexZ) * (clipPlane1W - clipPlane2W);
+            let projectionW = ((cameraW * vertexZ - cameraZ * vertexW) * (clipPlane1W - clipPlane2W) - (cameraW - vertexW) * (clipPlane1W * clipPlane2Z - clipPlane1Z * clipPlane2W)) / denominator;
+            let projectionZ = ((cameraW * vertexZ - cameraZ * vertexW) * (clipPlane1Z - clipPlane2Z) - (cameraZ - vertexZ) * (clipPlane1W * clipPlane2Z - clipPlane1Z * clipPlane2W)) / denominator;
+            let clipPlaneLength = Math.sqrt((clipPlane1W - clipPlane2W) * (clipPlane1W - clipPlane2W) + (clipPlane1Z - clipPlane2Z) * (clipPlane1Z - clipPlane2Z));
+            let distanceToPoint1 = Math.sqrt((clipPlane1W - projectionW) * (clipPlane1W - projectionW) + (clipPlane1Z - projectionZ) * (clipPlane1Z - projectionZ));
+            let distanceToPoint2 = Math.sqrt((clipPlane2W - projectionW) * (clipPlane2W - projectionW) + (clipPlane2Z - projectionZ) * (clipPlane2Z - projectionZ));
+            let scaledProjection;
+            if (distanceToPoint2 > distanceToPoint1) {
+                scaledProjection = -(2 * distanceToPoint2 / clipPlaneLength - 1);
+            }
+            else {
+                scaledProjection = 2 * distanceToPoint1 / clipPlaneLength - 1;
+            }
+            return scaledProjection * projectionDimension + projectionDimension / 2;
+        }
+        let x = getComponent(this.position.x, vertex.x, this.rotationHorizontal, this.projectionWidth);
+        let y = getComponent(this.position.y, vertex.y, this.rotationVertical, this.projectionHeight);
         return { x: x, y: y };
     }
 }

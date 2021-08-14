@@ -12,19 +12,26 @@ export function initCameraInputs(camera) {
             rotateCamera(camera, event.movementX, event.movementY);
         }
     });
+    document.addEventListener('wheel', event => {
+        zoomCamera(camera, Math.sign(event.deltaY));
+    });
     window.oncontextmenu = () => { return false; };
 }
 function moveCamera(camera, dx, dy) {
     let speedFactor = 1 / 250;
     let x = dx * speedFactor;
     let y = -dy * speedFactor;
-    let z = 0;
-    camera.position.translate(x, y, z);
-    camera.target.translate(x, y, z);
+    camera.position.translate(x, y, 0);
+    camera.target.translate(x, y, 0);
+}
+function zoomCamera(camera, zoom) {
+    let zoomFactor = camera.position.distance(camera.target) * 0.1;
+    //camera.position.translate(0, 0, -zoom * zoomFactor * Math.cos(camera.rotationYaw));
 }
 function rotateCamera(camera, dx, dy) {
     let speedFactor = 1 / 200;
-    camera.rotationYaw -= dx * speedFactor;
-    camera.rotationPitch -= dy * speedFactor;
+    camera.rotationHorizontal += dx * speedFactor;
+    camera.rotationVertical += dy * speedFactor;
+    //camera.rotateAroundTarget(dx * speedFactor, dy * speedFactor);
 }
 //# sourceMappingURL=inputs.js.map
